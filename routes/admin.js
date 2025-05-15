@@ -10,19 +10,14 @@ const ADMIN_USERNAME = "nexx";
 const ADMIN_PASSWORD = "4";
 
 const loadUsers = () => {
-    if (!fs.existsSync(usersFile)) {
-        console.log("users.json file does not exist, creating a new one.");
-        fs.writeFileSync(usersFile, JSON.stringify([]));  // Create file if it doesn't exist
-        return [];
-    }
-    console.log("Loading users from users.json");
+    if (!fs.existsSync(usersFile)) return [];
     return JSON.parse(fs.readFileSync(usersFile, "utf8") || "[]");
 };
 
 const saveUsers = (users) => {
-    console.log("Saving users to users.json", users);
     fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
 };
+
 
 const requireAuth = (req, res, next) => {
     if (!req.session.admin) {
@@ -30,6 +25,7 @@ const requireAuth = (req, res, next) => {
     }
     next();
 };
+
 
 router.post("/login", (req, res) => {
     const { username, password } = req.body;
@@ -40,20 +36,24 @@ router.post("/login", (req, res) => {
     res.status(401).json({ message: "Invalid credentials!" });
 });
 
+
 router.post("/logout", (req, res) => {
     req.session.destroy();
     res.json({ message: "Logged out successfully!" });
 });
 
+
 router.use(requireAuth);
+
 
 router.get("/users", (req, res) => {
     res.json(loadUsers());
 });
 
+
 router.post("/add", (req, res) => {
-    const { name, hwid, days } = req.body;
-    if (!name || !hwid || !days) return res.json({ message: "Name, HWID, and days are required!" });
+    const { hwid, days } = req.body;
+    if (!hwid || !days) return res.json({ message: "HWID and days required!" });
 
     let users = loadUsers();
     const expiryDate = new Date();
@@ -61,16 +61,16 @@ router.post("/add", (req, res) => {
 
     let userIndex = users.findIndex((user) => user.hwid === hwid);
     if (userIndex !== -1) {
-        users[userIndex].name = name;
         users[userIndex].expiry = expiryDate;
         users[userIndex].banned = false;
     } else {
-        users.push({ name, hwid, expiry: expiryDate, banned: false });
+        users.push({ hwid, expiry: expiryDate, banned: false });
     }
 
     saveUsers(users);
     res.json({ message: "User added/updated successfully!" });
 });
+
 
 router.post("/ban", (req, res) => {
     const { hwid } = req.body;
